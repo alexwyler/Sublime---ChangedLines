@@ -11,5 +11,15 @@
   // added and modified lines respectively
   // Color scopes are defined in .tmTheme color scheme files
   "added_color_scope": "vc.line.added",
-  "modified_color_scope": "vc.line.modified"
+  "modified_color_scope": "vc.line.modified",
+
+  // Configure mounted paths so ChangedLines can run git on the specified
+  // remote host
+  "mounted_paths": [
+    {
+      "local_prefix": "/Users/awyler/dev2/",
+      "remote_prefix": "/",
+      "remote_host": "dev"
+    }
+  ]
 }

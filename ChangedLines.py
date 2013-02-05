@@ -1,19 +1,34 @@
 import sublime
 import sublime_plugin
-import subprocess
+import AsyncShell
+import os.path
 
 class ShowChangedLinesCommand(sublime_plugin.TextCommand):
 
   def run(self, edit):
-    arg_filename = self.view.file_name().replace(' ', '\\ ')
-    script = 'git diff -U0 %s' % (arg_filename)
-    proc = subprocess.Popen(
-      script,
-      stdout=subprocess.PIPE,
-      stderr=subprocess.PIPE,
-      shell=True)
-    stdout, stderr = proc.communicate()
+    filepath = self.view.file_name()
+    self.settings = sublime.load_settings('ChangedLines.sublime-settings')
 
+    # transform local to remote path if needed
+    remote = None
+    for mounted_path_config in self.settings.get('mounted_paths'):
+      prefix = mounted_path_config.get('local_prefix');
+      if filepath.startswith(prefix):
+        filepath = filepath.replace(
+          prefix, mounted_path_config.get('remote_prefix'))
+        remote = mounted_path_config.get('remote_host')
+        break
+
+    filepath = filepath.replace(' ', '\\ ')
+
+    AsyncShell.AsyncShellCommand(
+      'cd {0} && git diff -U0 {1}',
+      [os.path.dirname(filepath), os.path.basename(filepath)]) \
+    .on_success(self.process_diff_results) \
+    .set_remote(remote) \
+    .start()
+
+  def process_diff_results(self, stdout, stderr):
     added_linenums = []
     modified_linenums = []
     removed_section_count = 0
@@ -39,18 +54,17 @@ class ShowChangedLinesCommand(sublime_plugin.TextCommand):
       point = self.view.text_point(linenum - 1, 0)
       return sublime.Region(point, point)
 
-    settings = sublime.load_settings('ChangedLines.sublime-settings')
     self.view.add_regions(
       'added_line_regions',
       map(region_for_linenum, added_linenums),
-      settings.get('added_color_scope'),
-      settings.get('added_line_gutter_icon'))
+      self.settings.get('added_color_scope'),
+      self.settings.get('added_line_gutter_icon'))
 
     self.view.add_regions(
       'modified_line_regions',
       map(region_for_linenum, modified_linenums),
-      settings.get('modified_color_scope'),
-      settings.get('modified_line_gutter_icon'))
+      self.settings.get('modified_color_scope'),
+      self.settings.get('modified_line_gutter_icon'))
 
 class ChangedLinesListener(sublime_plugin.EventListener):
 

@@ -24,7 +24,7 @@ class AsyncShellCommand(threading.Thread):
         self.expected_return_codes = expected_return_codes
         return self
 
-    def set_remote_shell(self, remote_shell):
+    def set_remote(self, remote_shell):
         self.remote_shell = remote_shell
         return self
 
